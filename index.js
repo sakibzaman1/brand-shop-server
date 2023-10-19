@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -29,21 +29,91 @@ async function run() {
     await client.connect();
 
     const productCollection = client.db('productDB').collection('products');
+    const myProductCollection = client.db('productDB').collection('myProducts')
 
     // Read data
+    // Read product
     app.get('/products', async(req, res)=> {
         const cursor = productCollection.find();
         const result = await cursor.toArray();
         res.send(result);
-    })
+    });
+
+    app.get('/products/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const result = await productCollection.findOne(query)
+      res.send(result);
+  })
 
     // Create data
+    // post product
     app.post('/products', async(req, res)=> {
         const newProduct = req.body;
         console.log(newProduct)
         const result = await productCollection.insertOne(newProduct);
         res.send(result);
-    })
+    });
+
+    // update product
+
+    app.put('/products/:id', async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) }
+      const options = { upsert: true }
+      const updatedProduct = req.body;
+      const product = {
+          $set: {
+              name: updatedProduct.name,
+              brand: updatedProduct.brand,
+              photo: updatedProduct.photo,
+              price: updatedProduct.price,
+              category: updatedProduct.category,
+              rating: updatedProduct.rating,
+              description : updatedProduct.description
+          }
+      }
+      const result = await productCollection.updateOne(filter, product, options)
+      res.send(result)
+
+  })
+
+    // Read data
+    // Read MyProduct
+
+    app.get('/myProducts', async(req, res)=> {
+      const cursor = myProductCollection.find();
+      const result = await cursor.toArray();
+      res.send(result)
+    });
+
+    app.get('/myProducts/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const result = await myProductCollection.findOne(query)
+      res.send(result);
+  })
+
+    // Create data
+    // post my product
+
+    app.post('/myProducts', async(req, res)=> {
+      const myAddedProduct = req.body;
+      console.log(myAddedProduct);
+      const result = await myProductCollection.insertOne(myAddedProduct);
+      res.send(result);
+    });
+
+    // Delete data
+    // delete my product
+
+    app.delete('/myProducts/:id', async(req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const result = await myProductCollection.deleteOne(query)
+      res.send(result)
+  })
+
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
